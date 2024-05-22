@@ -4,6 +4,12 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use rand::Rng;
+use dotenv::dotenv;
+
+const MAX_PLAYER_LOBBY: usize = 5;
+const MIN_SECRET: i32 = 0;
+const MAX_SECRET: i32 = 100;
+const MAX_NUMBER_ATTEMPTS: usize = 5;
 
 struct GameState {
     secret_number: i32,
@@ -17,8 +23,9 @@ struct Lobby {
 }
 
 fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, player_id: usize, sent_messages: Arc<Mutex<HashSet<usize>>>) {
-    stream.write(b"Welcome to the game! The number is between 0 and 100.\n").expect("Failed to write to client");
-
+    let welcome_message = format!("Welcome to the game! The number is between {} and {}.\n", MIN_SECRET, MAX_SECRET);
+    stream.write(welcome_message.as_bytes()).expect("Failed to write to client");
+    
     let mut buffer = [0; 512];
     loop {
         {
@@ -35,7 +42,7 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
                 continue;
             }
 
-            if game_state.attempts[player_id] >= 5 {
+            if game_state.attempts[player_id] >= MAX_NUMBER_ATTEMPTS {
                 stream.write(b"Game Over: You've reached the maximum number of attempts.\n").expect("Failed to write to client");
                 game_state.active = false;
                 return;
@@ -65,7 +72,7 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
 
         if guess == game_state.secret_number {
             for attempt in &mut game_state.attempts {
-                *attempt = 5;  // Set all attempts to max to effectively end the game for all players
+                *attempt = MAX_NUMBER_ATTEMPTS;  // Set all attempts to max to effectively end the game for all players
             }
             game_state.active = false;
             break;
@@ -79,7 +86,7 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
 }
 
 fn start_game(players: Vec<TcpStream>, sent_messages: Arc<Mutex<HashSet<usize>>>) {
-    let secret_number = rand::thread_rng().gen_range(0..=100);
+    let secret_number = rand::thread_rng().gen_range(MIN_SECRET..=MAX_SECRET);
     let game_state = Arc::new(Mutex::new(GameState {
         secret_number,
         current_turn: 0,
@@ -99,8 +106,10 @@ fn start_game(players: Vec<TcpStream>, sent_messages: Arc<Mutex<HashSet<usize>>>
 }
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").expect("Failed to bind to address");
-    println!("Server is running on 127.0.0.1:7878");
+    dotenv().ok();
+    let ip_server = std::env::var("IP_SERVER").unwrap();
+    let listener = TcpListener::bind(ip_server.clone()).expect("Failed to bind to address");
+    println!("Server is running on {}", ip_server);
 
     let lobby = Arc::new(Mutex::new(Lobby { players: Vec::new() }));
     let sent_messages = Arc::new(Mutex::new(HashSet::new()));
@@ -116,7 +125,7 @@ fn main() {
                     let message = format!("You are in the lobby. There are currently {} players waiting.\n", player_count + 1);
                     stream.write(message.as_bytes()).expect("Failed to write to client");
                     lobby.players.push(stream.try_clone().expect("Failed to clone stream"));
-                    if lobby.players.len() == 5 {
+                    if lobby.players.len() == MAX_PLAYER_LOBBY {
                         let players = std::mem::replace(&mut lobby.players, Vec::new());
                         drop(lobby);
                         start_game(players, sent_messages);
