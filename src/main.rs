@@ -3,6 +3,7 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 use rand::Rng;
 use dotenv::dotenv;
 
@@ -24,7 +25,10 @@ struct Lobby {
 }
 
 fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, player_id: usize, sent_messages: Arc<Mutex<HashSet<usize>>>) {
-    let welcome_message = format!("Welcome to the game! You are Player {}. The number is between {} and {}.\n", player_id, MIN_SECRET, MAX_SECRET);
+    let welcome_message = format!(
+        "Welcome to the game! You are Player {}. The number is between {} and {}.\n",
+        player_id, MIN_SECRET, MAX_SECRET
+    );
     stream.write(welcome_message.as_bytes()).expect("Failed to write to client");
     
     let mut buffer = [0; 512];
@@ -53,7 +57,7 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
                     waiting_message_sent = true;
                 }
                 drop(game_state);
-                std::thread::sleep(std::time::Duration::from_secs(1));
+                thread::sleep(Duration::from_secs(1));
                 continue;
             }
 
@@ -65,7 +69,12 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
                 return;
             }
 
-            stream.write(b"It's your turn. Enter your guess: ").expect("Failed to write to client");
+            let remaining_attempts = MAX_NUMBER_ATTEMPTS - game_state.attempts[player_id];
+            let turn_message = format!(
+                "It's your turn. Enter your guess: (Remaining attempts: {}) ",
+                remaining_attempts
+            );
+            stream.write(turn_message.as_bytes()).expect("Failed to write to client");
         }
 
         let bytes_read = stream.read(&mut buffer).expect("Failed to read from client");
@@ -81,9 +90,11 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
         let response = if guess == game_state.secret_number {
             game_state.active = false;
             game_state.winner = Some(player_id);
-            "OK\n"
+            "Correct! You guessed the number!\n"
+        } else if guess < game_state.secret_number {
+            "Too low!\n"
         } else {
-            "ERR\n"
+            "Too high!\n"
         };
 
         stream.write(response.as_bytes()).expect("Failed to write to client");
@@ -97,6 +108,18 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
         }
 
         game_state.current_turn = (game_state.current_turn + 1) % game_state.attempts.len();
+    }
+
+    {
+        let game_state = game_state.lock().unwrap();
+        if let Some(winner) = game_state.winner {
+            if winner == player_id {
+                stream.write(b"Game Over: You won the game!\n").expect("Failed to write to client");
+            } else {
+                let msg = format!("Game Over: Player {} won the game!\n", winner);
+                stream.write(msg.as_bytes()).expect("Failed to write to client");
+            }
+        }
     }
 
     let mut sent_messages = sent_messages.lock().unwrap();
@@ -140,7 +163,10 @@ fn main() {
                 let sent_messages = Arc::clone(&sent_messages);
                 let mut lobby = lobby.lock().unwrap();
                 let player_id = lobby.players.len();
-                let message = format!("You are Player {}. You are in the lobby. There are currently {} players waiting.\n", player_id, player_id + 1);
+                let message = format!(
+                    "You are Player {}. You are in the lobby. There are currently {} players waiting.\n", 
+                    player_id, player_id + 1
+                );
                 stream.write(message.as_bytes()).expect("Failed to write to client");
                 lobby.players.push(stream.try_clone().expect("Failed to clone stream"));
                 if lobby.players.len() == MAX_PLAYER_LOBBY {
