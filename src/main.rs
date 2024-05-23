@@ -16,6 +16,7 @@ struct GameState {
     current_turn: usize,
     attempts: Vec<usize>,
     active: bool,
+    winner: Option<usize>,
 }
 
 struct Lobby {
@@ -23,7 +24,7 @@ struct Lobby {
 }
 
 fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, player_id: usize, sent_messages: Arc<Mutex<HashSet<usize>>>) {
-    let welcome_message = format!("Welcome to the game! The number is between {} and {}.\n", MIN_SECRET, MAX_SECRET);
+    let welcome_message = format!("Welcome to the game! You are Player {}. The number is between {} and {}.\n", player_id, MIN_SECRET, MAX_SECRET);
     stream.write(welcome_message.as_bytes()).expect("Failed to write to client");
     
     let mut buffer = [0; 512];
@@ -33,7 +34,16 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
         {
             let mut game_state = game_state.lock().unwrap();
             if !game_state.active {
-                stream.write(b"Game Over: The game has ended.\n").expect("Failed to write to client");
+                if let Some(winner) = game_state.winner {
+                    if winner == player_id {
+                        stream.write(b"Game Over: You won the game!\n").expect("Failed to write to client");
+                    } else {
+                        let msg = format!("Game Over: Player {} won the game!\n", winner);
+                        stream.write(msg.as_bytes()).expect("Failed to write to client");
+                    }
+                } else {
+                    stream.write(b"Game Over: The game has ended.\n").expect("Failed to write to client");
+                }
                 return;
             }
 
@@ -70,6 +80,7 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
 
         let response = if guess == game_state.secret_number {
             game_state.active = false;
+            game_state.winner = Some(player_id);
             "OK\n"
         } else {
             "ERR\n"
@@ -99,6 +110,7 @@ fn start_game(players: Vec<TcpStream>, sent_messages: Arc<Mutex<HashSet<usize>>>
         current_turn: 0,
         attempts: vec![0; players.len()],
         active: true,
+        winner: None,
     }));
 
     println!("Starting a new game with secret number: {}", secret_number);
@@ -127,8 +139,8 @@ fn main() {
                 let lobby = Arc::clone(&lobby);
                 let sent_messages = Arc::clone(&sent_messages);
                 let mut lobby = lobby.lock().unwrap();
-                let player_count = lobby.players.len();
-                let message = format!("You are in the lobby. There are currently {} players waiting.\n", player_count + 1);
+                let player_id = lobby.players.len();
+                let message = format!("You are Player {}. You are in the lobby. There are currently {} players waiting.\n", player_id, player_id + 1);
                 stream.write(message.as_bytes()).expect("Failed to write to client");
                 lobby.players.push(stream.try_clone().expect("Failed to clone stream"));
                 if lobby.players.len() == MAX_PLAYER_LOBBY {
