@@ -126,18 +126,16 @@ fn main() {
             Ok(mut stream) => {
                 let lobby = Arc::clone(&lobby);
                 let sent_messages = Arc::clone(&sent_messages);
-                thread::spawn(move || {
-                    let mut lobby = lobby.lock().unwrap();
-                    let player_count = lobby.players.len();
-                    let message = format!("You are in the lobby. There are currently {} players waiting.\n", player_count + 1);
-                    stream.write(message.as_bytes()).expect("Failed to write to client");
-                    lobby.players.push(stream.try_clone().expect("Failed to clone stream"));
-                    if lobby.players.len() == MAX_PLAYER_LOBBY {
-                        let players = std::mem::replace(&mut lobby.players, Vec::new());
-                        drop(lobby);
-                        start_game(players, sent_messages);
-                    }
-                });
+                let mut lobby = lobby.lock().unwrap();
+                let player_count = lobby.players.len();
+                let message = format!("You are in the lobby. There are currently {} players waiting.\n", player_count + 1);
+                stream.write(message.as_bytes()).expect("Failed to write to client");
+                lobby.players.push(stream.try_clone().expect("Failed to clone stream"));
+                if lobby.players.len() == MAX_PLAYER_LOBBY {
+                    let players = std::mem::replace(&mut lobby.players, Vec::new());
+                    drop(lobby);
+                    start_game(players, sent_messages);
+                }
             }
             Err(e) => {
                 eprintln!("Failed to accept connection: {}", e);
