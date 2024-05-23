@@ -6,7 +6,7 @@ use std::thread;
 use rand::Rng;
 use dotenv::dotenv;
 
-const MAX_PLAYER_LOBBY: usize = 5;
+const MAX_PLAYER_LOBBY: usize = 2;
 const MIN_SECRET: i32 = 0;
 const MAX_SECRET: i32 = 100;
 const MAX_NUMBER_ATTEMPTS: usize = 5;
@@ -27,6 +27,8 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
     stream.write(welcome_message.as_bytes()).expect("Failed to write to client");
     
     let mut buffer = [0; 512];
+    let mut waiting_message_sent = false;
+
     loop {
         {
             let mut game_state = game_state.lock().unwrap();
@@ -36,11 +38,16 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
             }
 
             if game_state.current_turn != player_id {
-                stream.write(b"Waiting for another player to make a guess...\n").expect("Failed to write to client");
+                if !waiting_message_sent {
+                    stream.write(b"Waiting for another player to make a guess...\n").expect("Failed to write to client");
+                    waiting_message_sent = true;
+                }
                 drop(game_state);
                 std::thread::sleep(std::time::Duration::from_secs(1));
                 continue;
             }
+
+            waiting_message_sent = false;
 
             if game_state.attempts[player_id] >= MAX_NUMBER_ATTEMPTS {
                 stream.write(b"Game Over: You've reached the maximum number of attempts.\n").expect("Failed to write to client");
