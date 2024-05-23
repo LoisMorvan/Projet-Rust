@@ -12,6 +12,14 @@ const MIN_SECRET: i32 = 0;
 const MAX_SECRET: i32 = 100;
 const MAX_NUMBER_ATTEMPTS: usize = 5;
 
+const WAITING_MESSAGE: &str = "Waiting for another player to make a guess...\n";
+const GAME_OVER_WON: &str = "Game Over: You won the game!\n";
+const GAME_OVER_END: &str = "Game Over: The game has ended.\n";
+const GAME_OVER_MAX_ATTEMPTS: &str = "Game Over: You've reached the maximum number of attempts.\n";
+const CORRECT_GUESS: &str = "Correct! You guessed the number!\n";
+const TOO_LOW: &str = "Too low!\n";
+const TOO_HIGH: &str = "Too high!\n";
+
 struct GameState {
     secret_number: i32,
     current_turn: usize,
@@ -40,20 +48,20 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
             if !game_state.active {
                 if let Some(winner) = game_state.winner {
                     if winner == player_id {
-                        stream.write(b"Game Over: You won the game!\n").expect("Failed to write to client");
+                        stream.write(GAME_OVER_WON.as_bytes()).expect("Failed to write to client");
                     } else {
                         let msg = format!("Game Over: Player {} won the game!\n", winner);
                         stream.write(msg.as_bytes()).expect("Failed to write to client");
                     }
                 } else {
-                    stream.write(b"Game Over: The game has ended.\n").expect("Failed to write to client");
+                    stream.write(GAME_OVER_END.as_bytes()).expect("Failed to write to client");
                 }
                 return;
             }
 
             if game_state.current_turn != player_id {
                 if !waiting_message_sent {
-                    stream.write(b"Waiting for another player to make a guess...\n").expect("Failed to write to client");
+                    stream.write(WAITING_MESSAGE.as_bytes()).expect("Failed to write to client");
                     waiting_message_sent = true;
                 }
                 drop(game_state);
@@ -64,7 +72,7 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
             waiting_message_sent = false;
 
             if game_state.attempts[player_id] >= MAX_NUMBER_ATTEMPTS {
-                stream.write(b"Game Over: You've reached the maximum number of attempts.\n").expect("Failed to write to client");
+                stream.write(GAME_OVER_MAX_ATTEMPTS.as_bytes()).expect("Failed to write to client");
                 game_state.active = false;
                 return;
             }
@@ -90,11 +98,11 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
         let response = if guess == game_state.secret_number {
             game_state.active = false;
             game_state.winner = Some(player_id);
-            "Correct! You guessed the number!\n"
+            CORRECT_GUESS
         } else if guess < game_state.secret_number {
-            "Too low!\n"
+            TOO_LOW
         } else {
-            "Too high!\n"
+            TOO_HIGH
         };
 
         stream.write(response.as_bytes()).expect("Failed to write to client");
@@ -114,7 +122,7 @@ fn handle_client(mut stream: TcpStream, game_state: Arc<Mutex<GameState>>, playe
         let game_state = game_state.lock().unwrap();
         if let Some(winner) = game_state.winner {
             if winner == player_id {
-                stream.write(b"Game Over: You won the game!\n").expect("Failed to write to client");
+                stream.write(GAME_OVER_WON.as_bytes()).expect("Failed to write to client");
             } else {
                 let msg = format!("Game Over: Player {} won the game!\n", winner);
                 stream.write(msg.as_bytes()).expect("Failed to write to client");
