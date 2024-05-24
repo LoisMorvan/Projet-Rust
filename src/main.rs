@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{env, mem, thread};
 use std::time::Duration;
 use rand::Rng;
 use dotenv::dotenv;
@@ -157,7 +157,7 @@ fn start_game(players: Vec<TcpStream>, sent_messages: Arc<Mutex<HashSet<usize>>>
 
 fn main() {
     dotenv().ok();
-    let ip_server = std::env::var("IP_SERVER").unwrap();
+    let ip_server = env::var("IP_SERVER").unwrap();
     let listener = TcpListener::bind(ip_server.clone()).expect("Failed to bind to address");
     println!("Server is running on {}", ip_server);
 
@@ -178,7 +178,7 @@ fn main() {
                 stream.write(message.as_bytes()).expect("Failed to write to client");
                 lobby.players.push(stream.try_clone().expect("Failed to clone stream"));
                 if lobby.players.len() == MAX_PLAYER_LOBBY {
-                    let players = std::mem::replace(&mut lobby.players, Vec::new());
+                    let players = mem::replace(&mut lobby.players, Vec::new());
                     drop(lobby);
                     start_game(players, sent_messages);
                 }
