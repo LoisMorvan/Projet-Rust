@@ -1,30 +1,80 @@
-# Jeu de devinette de nombre en réseau
+# Jeu de Devinette de Nombre en Réseau
 
-Ce projet consiste en un jeu simple de "devinez quel nombre je pense" implémenté en Rust avec une communication réseau entre un serveur et plusieurs clients. Les joueurs se connectent au serveur et tentent de deviner le nombre secret défini par le serveur.
+Ce projet est un jeu simple de "devinez le nombre" implémenté en Rust, où un serveur et plusieurs clients communiquent via un réseau. Les joueurs se connectent au serveur et tentent de deviner le nombre secret choisi par le serveur. 
 
-## Règles du jeu
+## Règles du Jeu
 
-- Le serveur choisit un nombre secret entre 0 et 100.
-- Les joueurs se connectent au serveur et envoient leurs tentatives pour deviner le nombre.
-- Le serveur répond "OK" si le nombre est correct, sinon "ERR".
-- Les joueurs ont un nombre limité de 5 tentatives pour deviner le nombre.
-- Le jeu se déroule en tour par tour, chaque joueur essayant de deviner à son tour.
+1. Le serveur choisit un nombre secret entre 0 et 100.
+2. Les joueurs se connectent au serveur et essaient de deviner le nombre.
+3. Le serveur indique si le nombre deviné est correct ou non, et fournit des indices ("Trop bas" ou "Trop haut").
+4. Chaque joueur dispose d'un maximum de 5 tentatives pour deviner le nombre.
+5. Le jeu se déroule en tour par tour. Chaque joueur essaie de deviner le nombre à son tour.
+6. Le premier joueur à deviner correctement le nombre gagne la partie.
+7. Si aucun joueur ne devine le nombre après leurs 5 tentatives, le jeu se termine.
 
-## Commandes pour lancer le jeu
+## Prérequis
 
-### Lancer le serveur
+- [Rust](https://www.rust-lang.org/tools/install)
+- [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+
+## Installation et Configuration
+
+1. Clonez le dépôt du projet :
+   ```bash
+   git clone <URL_du_dépôt>
+   cd <nom_du_dépôt>
+   ```
+
+2. Installez les dépendances nécessaires :
+   ```bash
+   cargo build
+   ```
+
+3. Créez un fichier `.env` à la racine du projet et ajoutez-y l'adresse IP du serveur :
+   ```
+   IP_SERVER=127.0.0.1:7878
+   ```
+
+## Commandes pour Lancer le Jeu
+
+### Lancer le Serveur
 
 ```bash
 cargo run --bin server
 ```
 
-Cela lancera le serveur qui écoutera sur l'adresse `127.0.0.1:7878`.
+Cela lancera le serveur qui écoutera sur l'adresse spécifiée dans le fichier `.env`.
 
-### Lancer le client
+### Lancer le Client
 
 ```bash
 cargo run --bin client
 ```
 
-Cela lancera un client qui se connectera au serveur sur `127.0.0.1:7878` et permettra au joueur de jouer au jeu.
+Cela lancera un client qui se connectera au serveur sur l'adresse spécifiée dans le fichier `.env` et permettra au joueur de participer au jeu.
 
+## Fonctionnalités
+
+- **Tour par tour** : Les joueurs devinent le nombre secret chacun à leur tour.
+- **Messages d'attente** : Les joueurs sont informés lorsqu'ils doivent attendre leur tour.
+- **Indications de devinette** : Le serveur informe si la tentative est trop basse, trop haute ou correcte.
+- **Gestion des tentatives** : Chaque joueur dispose d'un maximum de 5 tentatives.
+- **Fin de jeu** : Le jeu se termine lorsque le nombre est deviné ou lorsque les tentatives sont épuisées.
+
+## Structure du Code
+
+### `main.rs` (Serveur)
+
+- **Structs** :
+  - `GameState` : Gère l'état du jeu, y compris le nombre secret, les tentatives, et le joueur en cours.
+  - `Lobby` : Gère les joueurs en attente.
+  
+- **Fonctions** :
+  - `handle_client` : Gère la communication avec un client.
+  - `start_game` : Initialise une nouvelle partie.
+  - `main` : Lance le serveur et accepte les connexions des clients.
+
+### `client.rs` (Client)
+
+- **Fonctions** :
+  - `main` : Lance le client, se connecte au serveur et gère l'interaction avec le serveur.
