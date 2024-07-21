@@ -65,10 +65,6 @@ Cela lancera un client qui se connectera au serveur sur l'adresse spécifiée da
 
 ### `main.rs` (Serveur)
 
-- **Structs** :
-  - `GameState` : Gère l'état du jeu, y compris le nombre secret, les tentatives, et le joueur en cours.
-  - `Lobby` : Gère les joueurs en attente.
-  
 - **Fonctions** :
   - `handle_client` : Gère la communication avec un client.
   - `start_game` : Initialise une nouvelle partie.
@@ -78,3 +74,17 @@ Cela lancera un client qui se connectera au serveur sur l'adresse spécifiée da
 
 - **Fonctions** :
   - `main` : Lance le client, se connecte au serveur et gère l'interaction avec le serveur.
+
+### `game.rs`
+
+- Contient les constantes de jeu et les structures principales (`GameState` et `Lobby`).
+- `GameState` : Gère l'état global du jeu et les actions des joueurs (comme deviner un nombre).
+- `Lobby` : Gère les joueurs en attente de commencer une partie.
+
+### `lib.rs`
+
+- Module principal du jeu.
+
+### `tests/game_tests.rs`
+
+- Contient des tests unitaires pour vérifier la logique du jeu (`GameState`).
