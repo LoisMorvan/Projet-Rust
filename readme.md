@@ -88,3 +88,43 @@ Cela lancera un client qui se connectera au serveur sur l'adresse spécifiée da
 ### `tests/game_tests.rs`
 
 - Contient des tests unitaires pour vérifier la logique du jeu (`GameState`).
+
+## Architecture de l'Application
+
+L'application est construite selon une architecture client-serveur en réseau. Voici un aperçu des principaux composants :
+
+### 1. Serveur (server)
+
+- **Responsabilité** : Gérer les connexions des joueurs, initier et contrôler les sessions de jeu, maintenir l'état du jeu, et envoyer des messages aux clients.
+- **Fichier principal** : `main.rs` (serveur).
+- **Fonctionnalités** :
+  - Accepter les connexions des clients.
+  - Gérer l'état du jeu pour chaque partie.
+  - Envoyer des instructions aux clients pour les guider dans le jeu.
+  - Gérer la fin de partie en fonction des résultats des joueurs.
+
+### 2. Client (client)
+
+- **Responsabilité** : Permettre aux joueurs de se connecter au serveur, de recevoir des messages du serveur, et de soumettre leurs réponses.
+- **Fichier principal** : `client.rs`.
+- **Fonctionnalités** :
+  - Se connecter au serveur.
+  - Lire les messages envoyés par le serveur.
+  - Envoyer les devinettes du joueur au serveur.
+  - Recevoir et afficher les résultats du jeu.
+
+### 3. Logique de Jeu (game)
+
+- **Responsabilité** : Gérer les règles et la logique du jeu, comme la vérification des réponses des joueurs et la gestion de l'état du jeu.
+- **Fichier principal** : `game.rs`.
+- **Fonctionnalités** :
+  - Maintenir l'état du jeu (tentatives, nombre secret, gagnant).
+  - Déterminer si une devinette est correcte, trop basse ou trop élevée.
+  - Gérer la fin de partie et déterminer le gagnant.
+
+### 4. Tests Unitaires
+
+- **Responsabilité** : Vérifier la validité de la logique de jeu.
+- **Fichier principal** : `tests/game_tests.rs`.
+- **Fonctionnalités** :
+  - Tester les différents scénarios de jeu pour assurer que la logique fonctionne comme prévu.
