@@ -1,4 +1,6 @@
-use number_game::game::{GameState, CORRECT_GUESS, TOO_LOW, TOO_HIGH, GAME_OVER_END, MAX_NUMBER_ATTEMPTS};
+use number_game::game::{
+    GameState, CORRECT_GUESS, GAME_OVER_END, MAX_NUMBER_ATTEMPTS, TOO_HIGH, TOO_LOW,
+};
 
 #[test]
 fn test_correct_guess() {
@@ -36,8 +38,9 @@ fn test_game_over_message() {
 #[test]
 fn test_max_attempts_reached() {
     let mut game_state = GameState::new(2, 42);
-    game_state.attempts[0] = MAX_NUMBER_ATTEMPTS - 1;
-    game_state.make_guess(0, 50);
+    game_state.attempts[0] = MAX_NUMBER_ATTEMPTS;
+    game_state.attempts[1] = MAX_NUMBER_ATTEMPTS - 1;
+    game_state.make_guess(1, 50);
     assert!(game_state.is_game_over());
     assert_eq!(game_state.get_winner_message(0), GAME_OVER_END);
 }
