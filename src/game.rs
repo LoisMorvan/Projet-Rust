@@ -13,6 +13,7 @@ pub const CORRECT_GUESS: &str = "Correct! You guessed the number!\n";
 pub const TOO_LOW: &str = "Too low!\n";
 pub const TOO_HIGH: &str = "Too high!\n";
 
+// Structure pour l'état du jeu
 pub struct GameState {
     pub secret_number: i32,
     pub current_turn: usize,
@@ -22,6 +23,7 @@ pub struct GameState {
 }
 
 impl GameState {
+    // Crée un nouvel état de jeu
     pub fn new(num_players: usize, secret_number: i32) -> Self {
         GameState {
             secret_number,
@@ -32,19 +34,21 @@ impl GameState {
         }
     }
 
+    // Gère les tentatives de devinette
     pub fn make_guess(&mut self, player_id: usize, guess: i32) -> &'static str {
         self.attempts[player_id] += 1;
 
         if self.attempts[player_id] >= MAX_NUMBER_ATTEMPTS {
             if self.attempts.iter().all(|&attempt| attempt >= MAX_NUMBER_ATTEMPTS) {
-                self.active = false;
+                self.active = false; // Si tous les joueurs ont atteint le nombre maximum de tentatives, le jeu se termine
             }
             return GAME_OVER_MAX_ATTEMPTS;
         }
 
+        // Vérifie si la devinette est correcte, trop basse ou trop haute
         if guess == self.secret_number {
             self.active = false;
-            self.winner = Some(player_id);
+            self.winner = Some(player_id); // Marque le joueur comme gagnant
             CORRECT_GUESS
         } else if guess < self.secret_number {
             TOO_LOW
@@ -53,10 +57,12 @@ impl GameState {
         }
     }
 
+    // Vérifie si le jeu est terminé
     pub fn is_game_over(&self) -> bool {
         !self.active || self.attempts.iter().all(|&attempt| attempt >= MAX_NUMBER_ATTEMPTS)
     }
 
+    // Génère le message de fin de jeu
     pub fn get_winner_message(&self, player_id: usize) -> String {
         if let Some(winner) = self.winner {
             if winner == player_id {
@@ -70,6 +76,7 @@ impl GameState {
     }
 }
 
+// Structure pour gérer le lobby des joueurs
 pub struct Lobby {
     pub players: Vec<TcpStream>,
 }
